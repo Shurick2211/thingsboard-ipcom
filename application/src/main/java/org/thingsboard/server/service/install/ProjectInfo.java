@@ -3,6 +3,7 @@
 package org.thingsboard.server.service.install;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.stereotype.Component;
 
@@ -14,9 +15,15 @@ public class ProjectInfo {
 
     private final Optional<BuildProperties> buildProperties;
 
+    @Value("${app.version:unknown}")
+    private String appVersion;
+
     public String getProjectVersion() {
-        return buildProperties.orElseThrow(() -> new IllegalStateException("Build properties are missing. Please rebuild the project with maven"))
-                .getVersion().replaceAll("[^\\d.]", "");
+        String version = buildProperties.map(BuildProperties::getVersion)
+                .or(() -> Optional.ofNullable(appVersion)
+                        .filter(v -> !v.isEmpty() && !v.startsWith("@") && !"unknown".equals(v)))
+                .orElse("4.4.0");
+        return version.replaceAll("[^\\d.]", "");
     }
 
     public String getProductType() {

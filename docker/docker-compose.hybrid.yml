@@ -8,19 +8,19 @@ services:
     restart: always
     image: "postgres:16"
     ports:
-      - "5432"
+      - "5432:5432"
     environment:
       POSTGRES_DB: thingsboard
       POSTGRES_PASSWORD: postgres
     volumes:
-      - ./tb-node/postgres:/var/lib/postgresql/data
+      - tb-postgres-data:/var/lib/postgresql/data
   cassandra:
     restart: always
     image: "cassandra:5.0"
     ports:
-      - "9042"
+      - "9042:9042"
     volumes:
-      - ./tb-node/cassandra:/var/lib/cassandra
+      - tb-cassandra-data:/var/lib/cassandra
   tb-core1:
     env_file:
       - tb-node.hybrid.env
@@ -45,3 +45,7 @@ services:
     depends_on:
       - postgres
       - cassandra
+
+volumes:
+  tb-postgres-data:
+  tb-cassandra-data:

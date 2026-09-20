@@ -8,12 +8,12 @@ services:
     restart: always
     image: "postgres:16"
     ports:
-    - "5432"
+      - "5432:5432"
     environment:
       POSTGRES_DB: thingsboard
       POSTGRES_PASSWORD: postgres
     volumes:
-      - ./tb-node/postgres:/var/lib/postgresql/data
+      - tb-postgres-data:/var/lib/postgresql/data
   tb-core1:
     env_file:
       - tb-node.postgres.env
@@ -34,3 +34,6 @@ services:
       - tb-node.postgres.env
     depends_on:
       - postgres
+
+volumes:
+  tb-postgres-data:

@@ -315,3 +315,10 @@ services:
         - tb-mqtt-transport2
         - tb-http-transport1
         - tb-http-transport2
+
+networks:
+  default:
+    name: docker_default
+    ipam:
+      config:
+        - subnet: 10.254.254.0/24

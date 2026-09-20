@@ -20,6 +20,8 @@ import org.thingsboard.server.dao.util.NoSqlTsDao;
 import org.thingsboard.server.dao.util.SqlTsLatestDao;
 import org.thingsboard.server.service.install.InstallScripts;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -215,8 +217,48 @@ public class CassandraTsLatestToSqlMigrateService implements TsLatestMigrateServ
     }
 
     private void loadSql(Path sqlFile, Connection conn) throws Exception {
-        String sql = new String(Files.readAllBytes(sqlFile), Charset.forName("UTF-8"));
+        String sql;
+        if (Files.exists(sqlFile)) {
+            sql = new String(Files.readAllBytes(sqlFile), Charset.forName("UTF-8"));
+        } else {
+            String fileName = sqlFile.getFileName().toString();
+            try {
+                sql = loadSqlFromClasspath(SQL_DIR + "/" + fileName);
+            } catch (Exception e) {
+                Path fallback = findFallbackPath(SQL_DIR, fileName);
+                if (fallback != null && Files.exists(fallback)) {
+                    sql = new String(Files.readAllBytes(fallback), Charset.forName("UTF-8"));
+                } else {
+                    throw new IOException("Schema file not found on disk at " + sqlFile + " or on classpath", e);
+                }
+            }
+        }
         conn.createStatement().execute(sql); //NOSONAR, ignoring because method used to execute thingsboard database upgrade script
         Thread.sleep(5000);
+    }
+
+    private String loadSqlFromClasspath(String resourcePath) throws IOException {
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+            if (is == null) {
+                throw new IOException("Resource not found on classpath: " + resourcePath);
+            }
+            return new String(is.readAllBytes(), Charset.forName("UTF-8"));
+        }
+    }
+
+    private Path findFallbackPath(String subDir, String fileName) {
+        String workDir = System.getProperty("user.dir");
+        if (workDir == null) {
+            return null;
+        }
+        Path path1 = Paths.get(workDir, "dao", "src", "main", "resources", subDir, fileName);
+        if (Files.exists(path1)) {
+            return path1;
+        }
+        Path path2 = Paths.get(workDir, "..", "dao", "src", "main", "resources", subDir, fileName);
+        if (Files.exists(path2)) {
+            return path2;
+        }
+        return null;
     }
 }

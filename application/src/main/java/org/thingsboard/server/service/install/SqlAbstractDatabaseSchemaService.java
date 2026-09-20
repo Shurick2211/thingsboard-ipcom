@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -64,10 +66,49 @@ public abstract class SqlAbstractDatabaseSchemaService implements DatabaseSchema
 
     void executeQueryFromFile(String schemaIdxSql) throws SQLException, IOException {
         Path schemaIdxFile = Paths.get(installScripts.getDataDir(), SQL_DIR, schemaIdxSql);
-        String sql = Files.readString(schemaIdxFile);
+        String sql;
+        if (Files.exists(schemaIdxFile)) {
+            sql = Files.readString(schemaIdxFile);
+        } else {
+            try {
+                sql = loadSqlFromClasspath(SQL_DIR + "/" + schemaIdxSql);
+            } catch (Exception e) {
+                Path fallback = findFallbackPath(SQL_DIR, schemaIdxSql);
+                if (fallback != null && Files.exists(fallback)) {
+                    sql = Files.readString(fallback);
+                } else {
+                    throw new IOException("Schema file not found on disk at " + schemaIdxFile + " or on classpath", e);
+                }
+            }
+        }
         try (Connection conn = DriverManager.getConnection(dbUrl, dbUserName, dbPassword)) {
             conn.createStatement().execute(sql); //NOSONAR, ignoring because method used to load initial thingsboard database schema
         }
+    }
+
+    private String loadSqlFromClasspath(String resourcePath) throws IOException {
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+            if (is == null) {
+                throw new IOException("Resource not found on classpath: " + resourcePath);
+            }
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    private Path findFallbackPath(String subDir, String fileName) {
+        String workDir = System.getProperty("user.dir");
+        if (workDir == null) {
+            return null;
+        }
+        Path path1 = Paths.get(workDir, "dao", "src", "main", "resources", subDir, fileName);
+        if (Files.exists(path1)) {
+            return path1;
+        }
+        Path path2 = Paths.get(workDir, "..", "dao", "src", "main", "resources", subDir, fileName);
+        if (Files.exists(path2)) {
+            return path2;
+        }
+        return null;
     }
 
     protected void executeQuery(String query) {
