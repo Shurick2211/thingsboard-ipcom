@@ -17,7 +17,7 @@ services:
     env_file:
       - tb-rule-engine-edqs.env
   tb-edqs1:
-    restart: always
+    restart: "no"
     image: "${DOCKER_REPO}/${EDQS_DOCKER_NAME}:${TB_VERSION}"
     environment:
       TB_SERVICE_ID: tb-edqs1
@@ -33,7 +33,7 @@ services:
       - zookeeper
       - kafka
   tb-edqs2:
-    restart: always
+    restart: "no"
     image: "${DOCKER_REPO}/${EDQS_DOCKER_NAME}:${TB_VERSION}"
     environment:
       TB_SERVICE_ID: tb-edqs2

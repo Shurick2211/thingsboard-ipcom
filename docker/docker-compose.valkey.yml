@@ -7,7 +7,7 @@ services:
 # Valkey standalone
 # The latest version of Valkey compatible with ThingsBoard is 8.0
   valkey:
-    restart: always
+    restart: "no"
     image: bitnamilegacy/valkey:8.0
     environment:
       # ALLOW_EMPTY_PASSWORD is recommended only for development.
